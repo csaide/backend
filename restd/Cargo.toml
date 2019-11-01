@@ -1,0 +1,11 @@
+[package]
+name = "restd"
+version = "0.1.0"
+authors = ["Christian Saide <me@csaide.dev>"]
+edition = "2018"
+
+[dependencies]
+common = { path = "../common" }
+
+clap = "~2.33.0"
+slog = "2.5"
