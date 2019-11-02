@@ -39,7 +39,11 @@ where
     type Err = Option<D::Err>;
     type Ok = Option<D::Ok>;
 
-    fn log(&self, record: &slog::Record, values: &slog::OwnedKVList) -> result::Result<Self::Ok, Self::Err> {
+    fn log(
+        &self,
+        record: &slog::Record,
+        values: &slog::OwnedKVList,
+    ) -> result::Result<Self::Ok, Self::Err> {
         if record.level().is_at_least(self.level) {
             self.drain.log(record, values).map(Some).map_err(Some)
         } else {
@@ -48,7 +52,11 @@ where
     }
 }
 
-pub fn new(cfg: &config::Config, app: &'static str, version: &'static str) -> error::Result<slog::Logger> {
+pub fn new(
+    cfg: &config::Config,
+    app: &'static str,
+    version: &'static str,
+) -> error::Result<slog::Logger> {
     match cfg.handler {
         Handler::File => {
             let file = match OpenOptions::new().create(true).append(true).open(&cfg.path) {
@@ -56,7 +64,7 @@ pub fn new(cfg: &config::Config, app: &'static str, version: &'static str) -> er
                 Err(e) => {
                     return Err(error::Error::IOError {
                         path: cfg.path.clone(),
-                        err:  std::sync::Arc::new(e),
+                        err: std::sync::Arc::new(e),
                     });
                 }
             };
@@ -69,7 +77,10 @@ pub fn new(cfg: &config::Config, app: &'static str, version: &'static str) -> er
             .fuse();
             let drain = slog_async::Async::new(drain).build().fuse();
 
-            Ok(slog::Logger::root(drain, o!("app" => app, "ver" => version)))
+            Ok(slog::Logger::root(
+                drain,
+                o!("app" => app, "ver" => version),
+            ))
         }
         Handler::Stdout => {
             let drain = slog_json::Json::new(io::stdout())
@@ -84,7 +95,10 @@ pub fn new(cfg: &config::Config, app: &'static str, version: &'static str) -> er
 
             let drain = slog_async::Async::new(drain).build().fuse();
 
-            Ok(slog::Logger::root(drain, o!("app" => app, "ver" => version)))
+            Ok(slog::Logger::root(
+                drain,
+                o!("app" => app, "ver" => version),
+            ))
         }
     }
 }

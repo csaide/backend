@@ -5,7 +5,7 @@
 
 BUILD_TYPE := "debug"
 
-dev: lint check debug
+dev: fmt check debug
 
 setup-dev:
 	@bash dist/bin/print.sh "SETTING UP LOCAL DEV"

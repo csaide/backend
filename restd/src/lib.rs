@@ -6,25 +6,35 @@
 extern crate slog;
 #[macro_use]
 extern crate clap;
+
+extern crate actix_service;
+extern crate actix_web;
+extern crate chrono;
 extern crate common;
+extern crate futures;
+extern crate serde;
+extern crate serde_json;
 
 // Standard usings
-use clap::{App, Arg};
+use actix_web::{App, HttpServer};
+use clap::Arg;
 use common::log;
+
+pub mod rest;
 
 pub fn run() -> i32 {
     let setup_logger = log::new(
         &log::config::Config {
             handler: log::Handler::Stdout,
-            level:   log::Level::Crit,
-            path:    String::from(""),
+            level: log::Level::Crit,
+            path: String::from(""),
         },
         crate_name!(),
         crate_version!(),
     )
     .unwrap();
 
-    let matches = App::new(crate_name!())
+    let matches = clap::App::new(crate_name!())
         .version(crate_version!())
         .author("Christian Saide <me@csaide.dev>")
         .about("REST api for csaide.dev")
@@ -55,22 +65,50 @@ pub fn run() -> i32 {
                 .takes_value(true)
                 .required_if("log_handler", "file"),
         )
+        .arg(
+            Arg::with_name("rest_port")
+                .long("rest-port")
+                .short("p")
+                .help("The port to listen on for incoming HTTP requests.")
+                .default_value("8080")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("rest_addr")
+                .long("rest-addr")
+                .short("a")
+                .help("The address to listen on for incoming HTTP requests.")
+                .default_value("0.0.0.0")
+                .takes_value(true),
+        )
         .get_matches();
 
     let log_handler = value_t!(matches, "log_handler", log::Handler).unwrap_or_else(|e| {
         e.exit();
     });
+
     let log_level = value_t!(matches, "log_level", log::Level).unwrap_or_else(|e| {
         e.exit();
     });
+
     let log_path = value_t!(matches, "log_path", String).unwrap_or_else(|e| {
         e.exit();
     });
 
+    let rest_port = value_t!(matches, "rest_port", u16).unwrap_or_else(|e| {
+        e.exit();
+    });
+
+    let rest_addr = value_t!(matches, "rest_addr", String).unwrap_or_else(|e| {
+        e.exit();
+    });
+
+    let listen_addr = format!("{}:{}", rest_addr, rest_port);
+
     let logger_cfg = log::config::Config {
         handler: log_handler,
-        level:   log_level,
-        path:    log_path,
+        level: log_level,
+        path: log_path,
     };
 
     let root_logger = match log::new(&logger_cfg, crate_name!(), crate_version!()) {
@@ -85,14 +123,18 @@ pub fn run() -> i32 {
         }
     };
 
-    error!(root_logger, "Error message!");
-    warn!(root_logger, "Warning message!");
     info!(
         root_logger,
-        "Initialized system, and ready to accept queries.";
-        o!("hello" => "world")
+        "Starting HTTP Server.";
+        o!("addr" => &listen_addr)
     );
-    debug!(root_logger, "Debug message!");
+
+    let logging = rest::logger::Logging::new(root_logger.new(o!("logger" => "rest")));
+    HttpServer::new(move || App::new().wrap(logging.clone()).configure(rest::configure))
+        .bind(listen_addr)
+        .unwrap()
+        .run()
+        .unwrap();
 
     return 0;
 }

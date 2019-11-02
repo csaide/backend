@@ -26,7 +26,9 @@ impl FromStr for Level {
             "warn" => Ok(Level::Warn),
             "info" => Ok(Level::Info),
             "debug" => Ok(Level::Debug),
-            _ => Err(Error::InvalidLevel { level: t.to_owned() }),
+            _ => Err(Error::InvalidLevel {
+                level: t.to_owned(),
+            }),
         }
     }
 }

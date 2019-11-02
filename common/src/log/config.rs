@@ -7,6 +7,6 @@ use super::{handler, level};
 #[derive(Debug, Clone)]
 pub struct Config {
     pub handler: handler::Handler,
-    pub level:   level::Level,
-    pub path:    String,
+    pub level: level::Level,
+    pub path: String,
 }
