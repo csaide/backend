@@ -8,6 +8,7 @@ pub struct Config {
     #[structopt(
         long = "rest-port",
         short = "p",
+        env = "REST_PORT",
         help = "The port to listen on for incoming HTTP requests.",
         default_value = "8080",
         takes_value = true
@@ -17,6 +18,7 @@ pub struct Config {
     #[structopt(
         long = "rest-addr",
         short = "a",
+        env = "REST_ADDR",
         help = "The address to listen on for incoming HTTP requests.",
         default_value = "0.0.0.0",
         takes_value = true

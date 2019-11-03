@@ -6,17 +6,19 @@
 extern crate slog;
 #[macro_use]
 extern crate clap;
+#[macro_use]
+extern crate slog_derive;
 
 extern crate actix_service;
 extern crate actix_web;
 extern crate chrono;
 extern crate common;
+extern crate erased_serde;
 extern crate futures;
 extern crate serde;
 extern crate serde_json;
 
 // Standard usings
-use actix_web::{App, HttpServer};
 use common::log;
 use structopt::StructOpt;
 
@@ -37,6 +39,8 @@ struct Config {
 }
 
 pub fn run() -> i32 {
+    let cfg = Config::from_args();
+
     let setup_logger = log::new(
         &log::config::Config {
             handler: log::Handler::Stdout,
@@ -48,34 +52,19 @@ pub fn run() -> i32 {
     )
     .unwrap();
 
-    let cfg = Config::from_args();
-
-    let listen_addr = format!("{}:{}", cfg.rest_config.addr, cfg.rest_config.port);
-
     let root_logger = match log::new(&cfg.log_config, crate_name!(), crate_version!()) {
         Ok(root_logger) => root_logger,
         Err(e) => {
-            crit!(
-                setup_logger,
-                "Failed to generate logger based on supplied configuration.";
-                e
-            );
+            crit!(setup_logger, "Failed to generate logger based on supplied configuration."; e);
             return 1;
         }
     };
 
-    info!(
-        root_logger,
-        "Starting HTTP Server.";
-        o!("addr" => &listen_addr)
-    );
-
-    let logging = rest::logger::Logging::new(root_logger.new(o!("logger" => "rest")));
-    HttpServer::new(move || App::new().wrap(logging.clone()).configure(rest::configure))
-        .bind(listen_addr)
-        .unwrap()
-        .run()
-        .unwrap();
-
-    return 0;
+    match rest::server(&cfg.rest_config, &root_logger) {
+        Ok(_) => 0,
+        Err(e) => {
+            crit!(root_logger, "Failed to bind and run HTTP server."; e);
+            1
+        }
+    }
 }

@@ -2,52 +2,44 @@
 // Licensed under the GPL-3.0, for details see https://github.com/csaide/backend/blob/master/LICENSE
 
 // Standard usings
-use actix_web::{guard, web, Error, HttpRequest, HttpResponse, Responder};
-use serde::{Deserialize, Serialize};
+use actix_web::{App, HttpServer};
 
 pub mod config;
-pub mod logger;
+pub mod error;
+pub mod middleware;
+pub mod v1;
 
 pub use config::Config;
 
-#[derive(Serialize, Deserialize)]
-struct HelloResponse {
-    message: String,
-}
+use middleware::logger;
 
-// Responder
-impl Responder for HelloResponse {
-    type Error = Error;
-    type Future = Result<HttpResponse, Error>;
+pub fn server(cfg: &config::Config, root_logger: &slog::Logger) -> error::Result<()> {
+    let listen_addr = format!("{}:{}", cfg.addr, cfg.port);
+    let logging = logger::Logging::new(root_logger.new(o!("logger" => "rest")));
 
-    fn respond_to(self, _req: &HttpRequest) -> Self::Future {
-        let body = serde_json::to_string(&self)?;
+    info!(root_logger, "Starting HTTP Server."; o!("addr" => &listen_addr));
 
-        // Create response and set content type
-        Ok(HttpResponse::Ok()
-            .content_type("application/json")
-            .body(body))
+    let server = HttpServer::new(move || {
+        App::new()
+            .wrap(logging.clone())
+            .wrap(actix_web::middleware::NormalizePath)
+            .configure(v1::configure)
+    });
+
+    let server = match server.bind(&listen_addr) {
+        Ok(server) => server,
+        Err(e) => {
+            return Err(error::Error::BindError {
+                addr: listen_addr,
+                err: std::sync::Arc::new(e),
+            })
+        }
+    };
+
+    match server.run() {
+        Ok(()) => Ok(()),
+        Err(e) => Err(error::Error::RunError {
+            err: std::sync::Arc::new(e),
+        }),
     }
-}
-
-fn get() -> impl Responder {
-    HelloResponse {
-        message: String::from("Hello World!!!"),
-    }
-}
-
-fn get_from(user: web::Path<String>) -> impl Responder {
-    HelloResponse {
-        message: format!("Hello {}!", user),
-    }
-}
-
-// this function could be located in different module
-pub fn configure(cfg: &mut web::ServiceConfig) {
-    cfg.service(web::resource("/hello").guard(guard::Get()).to(get));
-    cfg.service(
-        web::resource("/hello/{user}")
-            .guard(guard::Get())
-            .to(get_from),
-    );
 }
