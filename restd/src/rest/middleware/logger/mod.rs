@@ -2,7 +2,60 @@ use actix_service::{Service, Transform};
 use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error};
 use futures::future::{ok, FutureResult};
 use futures::{Future, Poll};
+use serde;
+use serde::ser::SerializeStruct;
 use slog::info;
+use std::result;
+
+#[derive(Debug, Clone, SerdeValue)]
+pub struct RequestLog {
+    route: String,
+    method: String,
+    uri: String,
+}
+
+impl serde::Serialize for RequestLog {
+    fn serialize<S>(&self, serializer: S) -> result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut sv = serializer.serialize_struct("RequestLog", 3)?;
+        sv.serialize_field("route", &self.route)?;
+        sv.serialize_field("method", &self.method)?;
+        sv.serialize_field("uri", &self.uri)?;
+        sv.end()
+    }
+}
+
+impl slog::KV for RequestLog {
+    fn serialize(&self, _: &slog::Record, serializer: &mut dyn slog::Serializer) -> slog::Result {
+        serializer.emit_serde("req", self)
+    }
+}
+
+#[derive(Debug, Clone, SerdeValue)]
+pub struct ResponseLog {
+    response_time: i64,
+    status: u16,
+}
+
+impl serde::Serialize for ResponseLog {
+    fn serialize<S>(&self, serializer: S) -> result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut sv = serializer.serialize_struct("ResponseLog", 2)?;
+        sv.serialize_field("response_time_us", &self.response_time)?;
+        sv.serialize_field("status", &self.status)?;
+        sv.end()
+    }
+}
+
+impl slog::KV for ResponseLog {
+    fn serialize(&self, _: &slog::Record, serializer: &mut dyn slog::Serializer) -> slog::Result {
+        serializer.emit_serde("res", self)
+    }
+}
 
 // There are two step in middleware processing.
 // 1. Middleware initialization, middleware factory get called with
@@ -72,12 +125,21 @@ where
             let req = res.request();
             let end_time = chrono::Utc::now();
             let duration = end_time - start_time;
+
+            let request_log = RequestLog {
+                route: req.path().to_string(),
+                method: req.method().to_string(),
+                uri: req.uri().to_string(),
+            };
+
+            let response_log = ResponseLog {
+                response_time: duration.num_microseconds().unwrap(),
+                status: res.status().as_u16(),
+            };
+
             info!(logger, "handled request";
-                "responseTime" => duration.num_microseconds(),
-                "uri" => %req.uri(),
-                "route" => req.path(),
-                "method" => %req.method(),
-                "statusCode" => res.status().as_u16()
+                request_log,
+                response_log
             );
             Ok(res)
         }))
