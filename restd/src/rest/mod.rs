@@ -5,7 +5,10 @@
 use actix_web::{guard, web, Error, HttpRequest, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 
+pub mod config;
 pub mod logger;
+
+pub use config::Config;
 
 #[derive(Serialize, Deserialize)]
 struct HelloResponse {

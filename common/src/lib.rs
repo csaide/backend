@@ -7,6 +7,7 @@ extern crate slog;
 #[macro_use]
 extern crate slog_derive;
 extern crate erased_serde;
+extern crate structopt;
 
 // Local modules
 pub mod log;
