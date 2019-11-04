@@ -3,13 +3,13 @@ use prometheus::{self, Encoder, TextEncoder};
 
 lazy_static! {
     pub static ref REQUEST_COUNTER: prometheus::IntCounterVec = register_int_counter_vec!(
-        "requests",
+        "restd_rest_requests",
         "Number of requests handled by route/method/status.",
         &["route", "method", "status"]
     )
     .unwrap();
     pub static ref LATENCY_HISTOGRAM: prometheus::HistogramVec = register_histogram_vec!(
-        "latency_us",
+        "restd_rest_latency_us",
         "Latency microsecond resolution buckets of requests handled by route/method/status.",
         &["route", "method", "status"],
         vec![
@@ -35,6 +35,7 @@ pub fn endpoint() -> HttpResponse {
 
     // Gather the metrics.
     let metric_families = prometheus::gather();
+
     // Encode them to send.
     encoder.encode(&metric_families, &mut buffer).unwrap();
 
