@@ -15,7 +15,7 @@ use middleware::logger;
 
 pub fn server(cfg: &config::Config, root_logger: &slog::Logger) -> error::Result<()> {
     let listen_addr = format!("{}:{}", cfg.addr, cfg.port);
-    let logging = logger::Logging::new(root_logger.new(o!("logger" => "rest")));
+    let logging = logger::Logger::new(root_logger.new(o!("logger" => "rest")));
 
     info!(root_logger, "Starting HTTP Server."; o!("addr" => &listen_addr));
 

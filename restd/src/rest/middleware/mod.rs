@@ -3,4 +3,4 @@
 
 pub mod logger;
 
-pub use logger::{Logging, LoggingMiddleware};
+pub use logger::Logger;
