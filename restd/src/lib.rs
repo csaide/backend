@@ -8,6 +8,10 @@ extern crate slog;
 extern crate clap;
 #[macro_use]
 extern crate slog_derive;
+#[macro_use]
+extern crate prometheus;
+#[macro_use]
+extern crate lazy_static;
 
 extern crate actix_service;
 extern crate actix_web;

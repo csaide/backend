@@ -4,22 +4,25 @@ use futures::future::{ok, FutureResult};
 use futures::{Future, Poll};
 use slog::{debug, error, warn};
 
-mod messages;
+mod metrics;
+mod records;
+
+pub use metrics::endpoint;
 
 #[derive(Clone)]
-pub struct Logger {
+pub struct Handler {
     logger: std::sync::Arc<slog::Logger>,
 }
 
-impl Logger {
-    pub fn new(logger: slog::Logger) -> Logger {
-        Logger {
+impl Handler {
+    pub fn new(logger: slog::Logger) -> Handler {
+        Handler {
             logger: std::sync::Arc::new(logger),
         }
     }
 }
 
-impl<S, B> Transform<S> for Logger
+impl<S, B> Transform<S> for Handler
 where
     S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
@@ -29,23 +32,23 @@ where
     type Response = ServiceResponse<B>;
     type Error = Error;
     type InitError = ();
-    type Transform = LoggerMiddleware<S>;
+    type Transform = HandlerMiddleware<S>;
     type Future = FutureResult<Self::Transform, Self::InitError>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        ok(LoggerMiddleware {
+        ok(HandlerMiddleware {
             service,
             logger: self.logger.clone(),
         })
     }
 }
 
-pub struct LoggerMiddleware<S> {
+pub struct HandlerMiddleware<S> {
     service: S,
     logger: std::sync::Arc<slog::Logger>,
 }
 
-impl<S, B> Service for LoggerMiddleware<S>
+impl<S, B> Service for HandlerMiddleware<S>
 where
     S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
@@ -70,11 +73,21 @@ where
             let duration = end_time - start_time;
             let status = res.status().as_u16();
 
-            let req_log = messages::Request::from(req);
-            let res_log = messages::Response {
+            let req_log = records::Request::from(req);
+            let res_log = records::Response {
                 latency_us: duration.num_microseconds().unwrap(),
                 status: status,
             };
+
+            let labels = [
+                req_log.route.as_str(),
+                req_log.method.as_str(),
+                &format!("{}", status),
+            ];
+            metrics::REQUEST_COUNTER.with_label_values(&labels).inc();
+            metrics::LATENCY_HISTOGRAM
+                .with_label_values(&labels)
+                .observe(duration.num_microseconds().unwrap() as f64);
 
             if status < 400 {
                 debug!(logger, "Successfully handled request."; req_log, res_log);

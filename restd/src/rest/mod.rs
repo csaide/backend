@@ -2,7 +2,7 @@
 // Licensed under the GPL-3.0, for details see https://github.com/csaide/backend/blob/master/LICENSE
 
 // Standard usings
-use actix_web::{App, HttpServer};
+use actix_web::{guard, web, App, HttpServer};
 
 pub mod config;
 pub mod error;
@@ -11,11 +11,11 @@ pub mod v1;
 
 pub use config::Config;
 
-use middleware::logger;
+use middleware::telemetry;
 
 pub fn server(cfg: &config::Config, root_logger: &slog::Logger) -> error::Result<()> {
     let listen_addr = format!("{}:{}", cfg.addr, cfg.port);
-    let logging = logger::Logger::new(root_logger.new(o!("logger" => "rest")));
+    let logging = telemetry::Handler::new(root_logger.new(o!("logger" => "rest")));
 
     info!(root_logger, "Starting HTTP Server."; o!("addr" => &listen_addr));
 
@@ -23,6 +23,12 @@ pub fn server(cfg: &config::Config, root_logger: &slog::Logger) -> error::Result
         App::new()
             .wrap(logging.clone())
             .wrap(actix_web::middleware::NormalizePath)
+            .route(
+                "/metrics",
+                web::route()
+                    .guard(guard::Get())
+                    .to(middleware::telemetry::endpoint),
+            )
             .configure(v1::configure)
     });
 
