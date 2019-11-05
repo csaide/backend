@@ -3,3 +3,5 @@
 
 pub mod error;
 pub mod hello;
+
+pub use error::{Error, Result};

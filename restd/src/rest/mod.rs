@@ -4,10 +4,11 @@
 // Standard usings
 use actix_web::{guard, web, App, HttpServer};
 
-pub mod config;
-pub mod error;
-pub mod middleware;
-pub mod v1;
+mod config;
+mod error;
+mod health;
+mod middleware;
+mod v1;
 
 pub use config::Config;
 
@@ -28,6 +29,10 @@ pub fn server(cfg: &config::Config, root_logger: &slog::Logger) -> error::Result
                 web::route()
                     .guard(guard::Get())
                     .to(middleware::telemetry::endpoint),
+            )
+            .route(
+                "/health",
+                web::route().guard(guard::Get()).to(health::endpoint),
             )
             .configure(v1::configure)
     });

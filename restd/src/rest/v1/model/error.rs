@@ -9,9 +9,16 @@ pub type Result<T> = actix_web::Result<T, Error>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Error {
-    pub status: u16,
+    #[serde(skip_serializing, skip_deserializing)]
+    pub status: StatusCode,
     pub retryable: bool,
     pub message: String,
+}
+
+impl Error {
+    pub fn to_actix(&self) -> actix_web::Error {
+        actix_web::Error::from(self.clone())
+    }
 }
 
 impl fmt::Display for Error {
@@ -23,9 +30,7 @@ impl fmt::Display for Error {
 
 impl ResponseError for Error {
     fn render_response(&self) -> HttpResponse {
-        let status =
-            StatusCode::from_u16(self.status).expect("Invalid status code specified in error.");
-        HttpResponse::build(status).json2(self)
+        HttpResponse::build(self.status).json2(self)
     }
 }
 
@@ -40,17 +45,37 @@ impl Responder for Error {
 }
 
 pub fn unauthorized() -> Error {
+    let status = StatusCode::UNAUTHORIZED;
     Error {
-        status: 403,
+        status: status,
         retryable: false,
-        message: String::from("Unauthorized access"),
+        message: format!("{}", status),
+    }
+}
+
+pub fn forbidden() -> Error {
+    let status = StatusCode::FORBIDDEN;
+    Error {
+        status: status,
+        retryable: false,
+        message: format!("{}", status),
     }
 }
 
 pub fn internal_error() -> Error {
+    let status = StatusCode::INTERNAL_SERVER_ERROR;
     Error {
-        status: 500,
+        status: status,
         retryable: false,
-        message: String::from("Internal server error."),
+        message: format!("{}", status),
+    }
+}
+
+pub fn not_implemented() -> Error {
+    let status = StatusCode::NOT_IMPLEMENTED;
+    Error {
+        status: status,
+        retryable: false,
+        message: format!("{}", status),
     }
 }

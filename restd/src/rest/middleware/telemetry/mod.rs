@@ -1,3 +1,6 @@
+// Copyright (c) 2019 Christian Saide <supernomad>
+// Licensed under the GPL-3.0, for details see https://github.com/csaide/backend/blob/master/LICENSE
+
 use actix_service::{Service, Transform};
 use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error};
 use futures::future::{ok, FutureResult};
