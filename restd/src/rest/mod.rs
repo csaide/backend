@@ -7,6 +7,7 @@ use actix_web::{guard, web, App, HttpServer};
 mod config;
 mod error;
 mod health;
+mod metrics;
 mod middleware;
 mod v1;
 
@@ -26,9 +27,7 @@ pub fn server(cfg: &config::Config, root_logger: &slog::Logger) -> error::Result
             .wrap(actix_web::middleware::NormalizePath)
             .route(
                 "/metrics",
-                web::route()
-                    .guard(guard::Get())
-                    .to(middleware::telemetry::endpoint),
+                web::route().guard(guard::Get()).to(metrics::endpoint),
             )
             .route(
                 "/health",
@@ -37,20 +36,16 @@ pub fn server(cfg: &config::Config, root_logger: &slog::Logger) -> error::Result
             .configure(v1::configure)
     });
 
-    let server = match server.bind(&listen_addr) {
-        Ok(server) => server,
-        Err(e) => {
-            return Err(error::Error::BindError {
-                addr: listen_addr,
-                err: std::sync::Arc::new(e),
-            })
-        }
-    };
-
-    match server.run() {
-        Ok(()) => Ok(()),
-        Err(e) => Err(error::Error::RunError {
+    let server = server.bind(&listen_addr).or_else(|e| {
+        Err(error::Error::BindError {
+            addr: listen_addr,
             err: std::sync::Arc::new(e),
-        }),
-    }
+        })
+    })?;
+
+    server.run().or_else(|e| {
+        Err(error::Error::RunError {
+            err: std::sync::Arc::new(e),
+        })
+    })
 }

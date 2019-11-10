@@ -3,7 +3,7 @@
 
 use actix_web::web;
 
-use super::auth::Authenticator;
+use super::middleware::Authenticator;
 use super::model::{error, hello::HelloResponse};
 
 pub fn get() -> error::Result<HelloResponse> {
@@ -23,11 +23,10 @@ pub fn error() -> error::Result<HelloResponse> {
 }
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
-    let authenticator = Authenticator::new();
+    let authenticator = Authenticator {};
     cfg.service(
         web::scope("/admin")
             .wrap(authenticator)
-            .route("", web::get().to(get))
             .route("/", web::get().to(get))
             .route("/error", web::get().to(error))
             .route("/{user}", web::get().to(get_from)),

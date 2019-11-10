@@ -4,8 +4,8 @@
 use actix_web::{web, Responder};
 
 pub mod admin;
-pub mod auth;
 pub mod hello;
+pub mod middleware;
 pub mod model;
 
 fn default() -> impl Responder {

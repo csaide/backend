@@ -10,8 +10,6 @@ use slog::{debug, error, warn};
 mod metrics;
 mod records;
 
-pub use metrics::endpoint;
-
 #[derive(Clone)]
 pub struct Handler {
     logger: std::sync::Arc<slog::Logger>,
@@ -75,10 +73,11 @@ where
             let end_time = chrono::Utc::now();
             let duration = end_time - start_time;
             let status = res.status().as_u16();
+            let latency = duration.num_microseconds().unwrap() as f64 / 1000.0;
 
             let req_log = records::Request::from(req);
             let res_log = records::Response {
-                latency_us: duration.num_microseconds().unwrap(),
+                latency_ms: latency,
                 status: status,
             };
 
@@ -90,7 +89,7 @@ where
             metrics::REQUEST_COUNTER.with_label_values(&labels).inc();
             metrics::LATENCY_HISTOGRAM
                 .with_label_values(&labels)
-                .observe(duration.num_microseconds().unwrap() as f64);
+                .observe(latency);
 
             if status < 400 {
                 debug!(logger, "Successfully handled request."; req_log, res_log);

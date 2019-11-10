@@ -29,7 +29,7 @@ impl From<&HttpRequest> for Request {
 
 #[derive(Debug, Clone, SerdeValue, Serialize)]
 pub struct Response {
-    pub latency_us: i64,
+    pub latency_ms: f64,
     pub status: u16,
 }
 
