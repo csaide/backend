@@ -6,8 +6,9 @@ use futures::{future, Future};
 use gotham::handler::HandlerFuture;
 use gotham::middleware::{Middleware, NewMiddleware};
 use gotham::state::State;
-use hyper::header::CONTENT_LENGTH;
 use std::io;
+
+use super::request_id::RequestID;
 
 mod metrics;
 mod records;
@@ -35,31 +36,16 @@ impl Middleware for Handler {
 
         let f = chain(state).and_then(move |(state, response)| {
             {
-                let end_time = Utc::now();
-                let duration = end_time - start_time;
-                let latency = duration.num_microseconds().unwrap() as f64 / 1000.0;
+                let duration = Utc::now() - start_time;
+                let latency = duration.num_microseconds().unwrap_or(1) as f64 / 1_000_000.0;
 
-                let req = records::Request::from(&state);
-
-                let status = response.status().as_u16();
-                let size = response
-                    .headers()
-                    .get(CONTENT_LENGTH)
-                    .map(|len| len.to_str().unwrap())
-                    .unwrap_or("0");
-
-                let size = size.parse::<usize>().unwrap_or(0);
-
-                let res = records::Response {
-                    latency_ms: latency,
-                    status: status,
-                    size: size,
-                };
+                let req = records::Req::new(&state);
+                let res = records::Res::new(&response, latency);
 
                 let labels = [
                     req.uri.as_str(),
                     req.method.as_str(),
-                    &format!("{}", status),
+                    &res.status.to_string(),
                 ];
 
                 metrics::REQUEST_COUNTER.with_label_values(&labels).inc();
@@ -68,11 +54,11 @@ impl Middleware for Handler {
                     .observe(latency);
                 metrics::RESPONSE_SIZE_HISTOGRAM
                     .with_label_values(&labels)
-                    .observe(size as f64);
+                    .observe(res.size as f64);
 
-                if status < 400 {
+                if res.status < 400 {
                     debug!(self.logger, "Successfully handled request."; req, res);
-                } else if status < 500 {
+                } else if res.status < 500 {
                     warn!(self.logger, "Client error during request."; req, res);
                 } else {
                     error!(self.logger, "Server error during request."; req, res);

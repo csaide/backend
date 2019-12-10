@@ -1,7 +1,6 @@
 // Copyright (c) 2019 Christian Saide <supernomad>
 // Licensed under the GPL-3.0, for details see https://github.com/csaide/backend/blob/master/LICENSE
 
-// Crates
 #[macro_use]
 extern crate slog;
 #[macro_use]
@@ -12,19 +11,13 @@ extern crate slog_derive;
 extern crate prometheus;
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate gotham_derive;
 
-extern crate chrono;
-extern crate common;
-extern crate erased_serde;
-extern crate futures;
-extern crate serde;
-extern crate serde_json;
-
-// Standard usings
 use common::log;
 use structopt::StructOpt;
 
-pub mod rest;
+mod rest;
 
 #[derive(Debug, Clone, StructOpt)]
 #[structopt(

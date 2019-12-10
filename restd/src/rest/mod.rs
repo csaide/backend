@@ -15,11 +15,15 @@ mod middleware;
 pub use config::Config;
 
 fn router(root_logger: &slog::Logger) -> Router {
-    let handler = middleware::telemetry::Handler {
+    let request_id_handler = middleware::request_id::Handler {};
+    let telemetry_handler = middleware::telemetry::Handler {
         logger: root_logger.new(o!("logger" => "rest")),
     };
 
-    let pipeline = new_pipeline().add(handler).build();
+    let pipeline = new_pipeline()
+        .add(request_id_handler)
+        .add(telemetry_handler)
+        .build();
 
     let (chain, pipelines) = single_pipeline(pipeline);
 

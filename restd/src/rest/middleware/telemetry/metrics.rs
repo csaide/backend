@@ -12,21 +12,21 @@ lazy_static! {
     .unwrap();
 
     pub static ref LATENCY_HISTOGRAM: prometheus::HistogramVec = register_histogram_vec!(
-        "restd_rest_latency_ms",
-        "Latency microsecond resolution buckets of requests handled by route/method/status.",
+        "restd_rest_latency",
+        "Latency buckets of requests handled by route/method/status.",
         &["route", "method", "status"],
         vec![
-            1.0,      // 1ms
-            250.0,    // 250ms
-            500.0,    // 500ms
-            750.0,    // 750ms
-            1_000.0,  // 1s
-            1_500.0,  // 1.5s
-            2_500.0,  // 2.5s
-            5_000.0,  // 5s
-            10_000.0, // 10s
-            30_000.0, // 30s
-            60_000.0  // 60s
+            0.001,  // 1ms
+            0.250,  // 250ms
+            0.500,  // 500ms
+            0.750,  // 750ms
+            1.000,  // 1s
+            1.500,  // 1.5s
+            2.500,  // 2.5s
+            5.000,  // 5s
+            10.000, // 10s
+            30.000, // 30s
+            60.000  // 60s
         ]
     )
     .unwrap();
