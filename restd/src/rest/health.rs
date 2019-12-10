@@ -1,28 +1,36 @@
 // Copyright (c) 2019 Christian Saide <supernomad>
 // Licensed under the GPL-3.0, for details see https://github.com/csaide/backend/blob/master/LICENSE
 
-use actix_web::{http::StatusCode, Error, HttpRequest, HttpResponse, Responder};
-use serde::{Deserialize, Serialize};
+use gotham::handler::IntoResponse;
+use gotham::helpers::http::response::create_response;
+use gotham::state::State;
+use hyper::{Body, Response, StatusCode};
+use serde::Serialize;
 
-#[derive(Serialize, Deserialize)]
-struct Health {
-    #[serde(skip_serializing, skip_deserializing)]
+#[derive(Serialize)]
+pub struct Health {
+    #[serde(skip_serializing)]
     status: StatusCode,
     alive: bool,
 }
 
-impl Responder for Health {
-    type Error = Error;
-    type Future = Result<HttpResponse, Error>;
-
-    fn respond_to(self, _req: &HttpRequest) -> Self::Future {
-        Ok(HttpResponse::build(self.status).json2(&self))
+impl IntoResponse for Health {
+    fn into_response(self, state: &State) -> Response<Body> {
+        create_response(
+            state,
+            self.status,
+            mime::APPLICATION_JSON,
+            serde_json::to_string(&self).expect("serialize health"),
+        )
     }
 }
 
-pub fn endpoint() -> impl Responder {
-    Health {
-        status: StatusCode::OK,
-        alive: true,
-    }
+pub fn endpoint(state: State) -> (State, Health) {
+    (
+        state,
+        Health {
+            status: StatusCode::OK,
+            alive: true,
+        },
+    )
 }

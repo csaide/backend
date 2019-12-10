@@ -1,51 +1,39 @@
 // Copyright (c) 2019 Christian Saide <supernomad>
 // Licensed under the GPL-3.0, for details see https://github.com/csaide/backend/blob/master/LICENSE
 
-// Standard usings
-use actix_web::{guard, web, App, HttpServer};
+use gotham::pipeline::new_pipeline;
+use gotham::pipeline::single::single_pipeline;
+use gotham::router::builder::*;
+use gotham::router::Router;
 
 mod config;
 mod error;
 mod health;
 mod metrics;
 mod middleware;
-mod v1;
 
 pub use config::Config;
 
-use middleware::telemetry;
+fn router(root_logger: &slog::Logger) -> Router {
+    let handler = middleware::telemetry::Handler {
+        logger: root_logger.new(o!("logger" => "rest")),
+    };
+
+    let pipeline = new_pipeline().add(handler).build();
+
+    let (chain, pipelines) = single_pipeline(pipeline);
+
+    build_router(chain, pipelines, |route| {
+        route.get("/metrics").to(metrics::endpoint);
+        route.get("/health").to(health::endpoint);
+    })
+}
 
 pub fn server(cfg: &config::Config, root_logger: &slog::Logger) -> error::Result<()> {
     let listen_addr = format!("{}:{}", cfg.addr, cfg.port);
-    let logging = telemetry::Handler::new(root_logger.new(o!("logger" => "rest")));
+    let rt = router(&root_logger);
 
-    info!(root_logger, "Starting HTTP Server."; o!("addr" => &listen_addr));
-
-    let server = HttpServer::new(move || {
-        App::new()
-            .wrap(logging.clone())
-            .wrap(actix_web::middleware::NormalizePath)
-            .route(
-                "/metrics",
-                web::route().guard(guard::Get()).to(metrics::endpoint),
-            )
-            .route(
-                "/health",
-                web::route().guard(guard::Get()).to(health::endpoint),
-            )
-            .configure(v1::configure)
-    });
-
-    let server = server.bind(&listen_addr).or_else(|e| {
-        Err(error::Error::BindError {
-            addr: listen_addr,
-            err: std::sync::Arc::new(e),
-        })
-    })?;
-
-    server.run().or_else(|e| {
-        Err(error::Error::RunError {
-            err: std::sync::Arc::new(e),
-        })
-    })
+    info!(root_logger, "Starting HTTP Rest API Server!"; "addr" => &listen_addr);
+    gotham::start_with_num_threads(listen_addr, rt, cfg.workers);
+    Ok(())
 }

@@ -1,14 +1,15 @@
 // Copyright (c) 2019 Christian Saide <supernomad>
 // Licensed under the GPL-3.0, for details see https://github.com/csaide/backend/blob/master/LICENSE
 
-use actix_web::HttpRequest;
+use gotham::state::{FromState, State};
+use hyper::{Method, Uri, Version};
 use serde::Serialize;
 
 #[derive(Debug, Clone, SerdeValue, Serialize)]
 pub struct Request {
-    pub route: String,
-    pub method: String,
     pub uri: String,
+    pub method: String,
+    pub version: String,
 }
 
 impl slog::KV for Request {
@@ -17,12 +18,12 @@ impl slog::KV for Request {
     }
 }
 
-impl From<&HttpRequest> for Request {
-    fn from(req: &HttpRequest) -> Request {
+impl From<&State> for Request {
+    fn from(state: &State) -> Request {
         Request {
-            route: req.path().to_string(),
-            method: req.method().to_string(),
-            uri: req.uri().to_string(),
+            uri: Uri::borrow_from(state).path().to_owned(),
+            method: Method::borrow_from(state).as_str().to_owned(),
+            version: format!("{:?}", Version::borrow_from(state)),
         }
     }
 }
@@ -31,6 +32,7 @@ impl From<&HttpRequest> for Request {
 pub struct Response {
     pub latency_ms: f64,
     pub status: u16,
+    pub size: String,
 }
 
 impl slog::KV for Response {

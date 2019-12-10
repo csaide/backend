@@ -13,8 +13,6 @@ extern crate prometheus;
 #[macro_use]
 extern crate lazy_static;
 
-extern crate actix_service;
-extern crate actix_web;
 extern crate chrono;
 extern crate common;
 extern crate erased_serde;

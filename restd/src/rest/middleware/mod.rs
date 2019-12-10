@@ -2,5 +2,3 @@
 // Licensed under the GPL-3.0, for details see https://github.com/csaide/backend/blob/master/LICENSE
 
 pub mod telemetry;
-
-pub use telemetry::Handler;
