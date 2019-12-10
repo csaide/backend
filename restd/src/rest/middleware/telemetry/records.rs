@@ -32,7 +32,7 @@ impl From<&State> for Request {
 pub struct Response {
     pub latency_ms: f64,
     pub status: u16,
-    pub size: String,
+    pub size: usize,
 }
 
 impl slog::KV for Response {

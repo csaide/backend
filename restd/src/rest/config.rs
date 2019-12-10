@@ -24,4 +24,14 @@ pub struct Config {
         takes_value = true
     )]
     pub addr: String,
+
+    #[structopt(
+        long = "rest-workers",
+        short = "w",
+        env = "REST_WORKERS",
+        help = "The number of HTTP Rest workers to spawn for handling request/response cycles.",
+        default_value = "1",
+        takes_value = true
+    )]
+    pub workers: usize,
 }

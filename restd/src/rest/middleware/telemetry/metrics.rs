@@ -30,4 +30,21 @@ lazy_static! {
         ]
     )
     .unwrap();
+
+    pub static ref RESPONSE_SIZE_HISTOGRAM: prometheus::HistogramVec = register_histogram_vec!(
+        "restd_rest_response_size",
+        "Response size buckets of requests handled by route/method/status.",
+        &["route", "method", "status"],
+        vec![
+            256.0,     // 256 B
+            512.0,     // 512 B
+            1024.0,    // 1 KiB
+            262144.0,  // 256 KiB
+            524288.0,  // 512 KiB
+            1048576.0, // 1 MiB
+            2097152.0, // 2 MiB
+            5242880.0, // 5 MiB
+        ]
+    )
+    .unwrap();
 }

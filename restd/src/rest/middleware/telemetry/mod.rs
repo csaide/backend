@@ -37,7 +37,6 @@ impl Middleware for Handler {
             {
                 let end_time = Utc::now();
                 let duration = end_time - start_time;
-
                 let latency = duration.num_microseconds().unwrap() as f64 / 1000.0;
 
                 let req = records::Request::from(&state);
@@ -49,10 +48,12 @@ impl Middleware for Handler {
                     .map(|len| len.to_str().unwrap())
                     .unwrap_or("0");
 
+                let size = size.parse::<usize>().unwrap_or(0);
+
                 let res = records::Response {
                     latency_ms: latency,
                     status: status,
-                    size: size.to_owned(),
+                    size: size,
                 };
 
                 let labels = [
@@ -60,10 +61,14 @@ impl Middleware for Handler {
                     req.method.as_str(),
                     &format!("{}", status),
                 ];
+
                 metrics::REQUEST_COUNTER.with_label_values(&labels).inc();
                 metrics::LATENCY_HISTOGRAM
                     .with_label_values(&labels)
                     .observe(latency);
+                metrics::RESPONSE_SIZE_HISTOGRAM
+                    .with_label_values(&labels)
+                    .observe(size as f64);
 
                 if status < 400 {
                     debug!(self.logger, "Successfully handled request."; req, res);
