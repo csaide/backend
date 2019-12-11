@@ -33,11 +33,10 @@ fn router(root_logger: &slog::Logger) -> Router {
     })
 }
 
-pub fn server(cfg: &config::Config, root_logger: &slog::Logger) -> error::Result<()> {
+pub fn server(cfg: &config::Config, root_logger: &slog::Logger) {
     let listen_addr = format!("{}:{}", cfg.addr, cfg.port);
     let rt = router(&root_logger);
 
-    info!(root_logger, "Starting HTTP Rest API Server!"; "addr" => &listen_addr);
+    info!(root_logger, "Starting HTTP Rest API Server!"; "addr" => &listen_addr, "workers" => cfg.workers);
     gotham::start_with_num_threads(listen_addr, rt, cfg.workers);
-    Ok(())
 }

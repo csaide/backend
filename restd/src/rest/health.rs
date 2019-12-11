@@ -25,12 +25,17 @@ impl IntoResponse for Health {
     }
 }
 
-pub fn endpoint(state: State) -> (State, Health) {
-    (
-        state,
-        Health {
-            status: StatusCode::OK,
-            alive: true,
-        },
-    )
+pub fn endpoint(state: State) -> (State, Result<Health, super::error::HttpError>) {
+    // let resp = Ok(Health {
+    // status: StatusCode::OK,
+    // alive: true,
+    // });
+
+    let resp = Err(super::error::HttpError{
+        status: StatusCode::INTERNAL_SERVER_ERROR,
+        msg: "Something really fucking bad just happened...... end of days.... end of fucking days....".to_owned(),
+        retryable: false,
+    });
+
+    (state, resp)
 }

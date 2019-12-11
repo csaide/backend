@@ -55,11 +55,7 @@ pub fn run() -> i32 {
         }
     };
 
-    match rest::server(&cfg.rest_config, &root_logger) {
-        Ok(_) => 0,
-        Err(e) => {
-            crit!(root_logger, "Failed to bind and run HTTP server."; e);
-            1
-        }
-    }
+    rest::server(&cfg.rest_config, &root_logger);
+    info!(root_logger, "Server shutdown.");
+    return 0;
 }
