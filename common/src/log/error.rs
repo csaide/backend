@@ -29,9 +29,9 @@ pub enum Error {
 impl Error {
     fn message(&self) -> &str {
         match self {
-            Error::IOError { .. } => "Could not open configured log path.",
-            Error::HandlerMissing { .. } => "Specified log handler is invalid.",
-            Error::InvalidLevel { .. } => "Specified log level is invalid.",
+            Error::IOError { .. } => "Could not open configured log path",
+            Error::HandlerMissing { .. } => "Specified log handler is invalid",
+            Error::InvalidLevel { .. } => "Specified log level is invalid",
         }
     }
 }
@@ -41,30 +41,28 @@ impl serde::Serialize for Error {
     where
         S: serde::Serializer,
     {
-        match self {
+        let mut sv = match self {
             Error::IOError { ref path, ref err } => {
-                let mut sv = serializer.serialize_struct("LogError", 4)?;
-                sv.serialize_field("kind", KIND)?;
-                sv.serialize_field("description", self.message())?;
+                let mut sv = serializer.serialize_struct("Error", 4)?;
                 sv.serialize_field("path", path)?;
                 sv.serialize_field("cause", &format!("{}", err))?;
-                sv.end()
+                sv
             }
             Error::HandlerMissing { ref handler } => {
-                let mut sv = serializer.serialize_struct("LogError", 3)?;
-                sv.serialize_field("kind", KIND)?;
-                sv.serialize_field("description", self.message())?;
+                let mut sv = serializer.serialize_struct("Error", 3)?;
                 sv.serialize_field("handler", handler)?;
-                sv.end()
+                sv
             }
             Error::InvalidLevel { ref level } => {
-                let mut sv = serializer.serialize_struct("LogError", 3)?;
-                sv.serialize_field("kind", KIND)?;
-                sv.serialize_field("description", self.message())?;
+                let mut sv = serializer.serialize_struct("Error", 3)?;
                 sv.serialize_field("level", level)?;
-                sv.end()
+                sv
             }
-        }
+        };
+
+        sv.serialize_field("kind", KIND)?;
+        sv.serialize_field("description", self.message())?;
+        sv.end()
     }
 }
 
@@ -72,13 +70,13 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::IOError { ref path, ref err } => {
-                write!(f, "could not open configured log path '{}': {}", path, err)
+                write!(f, "{} '{}': {}", self.message(), path, err)
             }
             Error::HandlerMissing { ref handler } => {
-                write!(f, "specified log handler '{}' is not implemented", handler)
+                write!(f, "{}: '{}' is not implemented", self.message(), handler)
             }
             Error::InvalidLevel { ref level } => {
-                write!(f, "specified log level '{}' is not implemented", level)
+                write!(f, "{}: '{}' is not implemented", self.message(), level)
             }
         }
     }
