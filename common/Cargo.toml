@@ -12,3 +12,4 @@ slog-json = { version = "2.3", features = ["nested-values"] }
 slog_derive = { git = "https://github.com/slog-rs/derive.git" }
 serde = { version = "1.0.102", features = ["derive"] }
 erased-serde = "0.3"
+jsonwebtoken = "6"

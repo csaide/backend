@@ -11,6 +11,7 @@ mod error;
 mod health;
 mod metrics;
 mod middleware;
+mod v1;
 
 pub use config::Config;
 
@@ -28,8 +29,12 @@ fn router(root_logger: &slog::Logger) -> Router {
     let (chain, pipelines) = single_pipeline(pipeline);
 
     build_router(chain, pipelines, |route| {
-        route.get("/metrics").to(metrics::endpoint);
         route.get("/health").to(health::endpoint);
+        route.get("/metrics").to(metrics::endpoint);
+
+        route.scope("/v1", |scope| {
+            v1::router(scope);
+        });
     })
 }
 
